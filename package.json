@@ -1,0 +1,21 @@
+{
+  "name": "governance-os",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plug-and-play governance OS – create a mini-DAO in 2 minutes",
+  "scripts": {
+    "chain": "pnpm --filter contracts chain",
+    "deploy:local": "pnpm --filter contracts deploy:local",
+    "dev": "concurrently -n chain,api,web -c cyan,green,blue \"pnpm chain\" \"sleep 3 && pnpm --filter api dev\" \"pnpm --filter web dev\"",
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter contracts build && pnpm --filter api build && pnpm --filter web build",
+    "db:push": "pnpm --filter api db:push",
+    "db:seed": "pnpm --filter api db:seed",
+    "setup": "pnpm install && pnpm --filter contracts build && pnpm db:push && pnpm db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  }
+}

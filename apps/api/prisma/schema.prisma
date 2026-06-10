@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String       @id @default(uuid())
+  walletAddress  String       @unique @map("wallet_address")
+  displayName    String?      @map("display_name")
+  nonce          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  memberships    Membership[]
+  proposals      Proposal[]
+
+  @@map("users")
+}
+
+// governanceTemplate: "SIMPLE_MAJORITY" | "TOKEN_WEIGHTED" | "QUADRATIC"
+model Community {
+  id                 String       @id @default(uuid())
+  name               String
+  slug               String       @unique
+  description        String?
+  logoUrl            String?      @map("logo_url")
+  category           String       @default("DAO")
+  governanceTemplate String       @default("SIMPLE_MAJORITY") @map("governance_template")
+  quorumPercent      Int          @default(20) @map("quorum_percent")
+  voteDurationSecs   Int          @default(86400) @map("vote_duration_secs")
+  contractAddress    String?      @map("contract_address")
+  ownerUserId        String       @map("owner_user_id")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  memberships        Membership[]
+  proposals          Proposal[]
+
+  @@map("communities")
+}
+
+// role: "OWNER" | "ADMIN" | "MEMBER"
+model Membership {
+  id          String   @id @default(uuid())
+  communityId String   @map("community_id")
+  userId      String   @map("user_id")
+  role        String   @default("MEMBER")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@map("memberships")
+}
+
+// status: "DRAFT" | "ACTIVE" | "PASSED" | "REJECTED" | "EXPIRED"
+model Proposal {
+  id           String   @id @default(uuid())
+  communityId  String   @map("community_id")
+  authorId     String   @map("author_id")
+  onchainId    String?  @map("onchain_id")
+  txHash       String?  @map("tx_hash")
+  title        String
+  description  String
+  category     String   @default("General")
+  status       String   @default("ACTIVE")
+  forVotes     Int      @default(0) @map("for_votes")
+  againstVotes Int      @default(0) @map("against_votes")
+  abstainVotes Int      @default(0) @map("abstain_votes")
+  startTime    DateTime @map("start_time")
+  endTime      DateTime @map("end_time")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  community Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User             @relation(fields: [authorId], references: [id])
+  votes     Vote[]
+  insight   ProposalInsight?
+
+  @@map("proposals")
+}
+
+// voteOption: "FOR" | "AGAINST" | "ABSTAIN"
+model Vote {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  userId     String   @map("user_id")
+  voteOption String   @map("vote_option")
+  weight     Int      @default(1)
+  txHash     String?  @map("tx_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@map("votes")
+}
+
+model ProposalInsight {
+  id         String   @id @default(uuid())
+  proposalId String   @unique @map("proposal_id")
+  aiSummary  String   @map("ai_summary")
+  aiRisks    String   @map("ai_risks")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_insights")
+}
